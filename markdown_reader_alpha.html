@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alpha Markdown Reader</title>
+    <link rel="stylesheet" href="markdown_reader/markdown_standard.css">
+    <style>
+        /* ===== UI STYLES ONLY ===== */
+        /* These ONLY affect the reader interface, NOT markdown content */
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .reader-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .browse-btn {
+            background: #d63031;
+            border: none;
+            border-radius: 5px;
+            display: block;
+            padding: 30px 20px;
+            font-size: 18px;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            margin: 20px 0;
+            width: 100%;
+            transition: background 0.3s ease;
+        }
+
+        .browse-btn:hover {
+            background: #b71c1c;
+        }
+
+        .browse-btn.drag-over {
+            background: #b71c1c;
+            border: 2px dashed #ffffff;
+        }
+
+        .instructions {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            border-radius: 5px;
+            color: #742a2a;
+            margin-bottom: 20px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .current-file {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            border-radius: 5px;
+            color: #b71c1c;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 10px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #stats-badge {
+            font-size: 12px;
+            font-weight: normal;
+            color: #742a2a;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 12px;
+            border: 1px solid #feb2b2;
+        }
+
+        /* Spinner for async operations */
+        #spinner {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #d63031;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 1000;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Performance stats panel */
+        #perf-stats {
+            font-family: monospace;
+            font-size: 11px;
+            color: #742a2a;
+            margin-top: 10px;
+            padding: 8px;
+            background: #fff5f5;
+            border-radius: 3px;
+            border: 1px solid #feb2b2;
+            display: none;
+        }
+
+        .stat-item {
+            display: inline-block;
+            margin-right: 15px;
+        }
+
+        .stat-label {
+            color: #b71c1c;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #d63031;
+        }
+
+        /* Worker status indicator */
+        #worker-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+        .worker-active { background-color: #28a745; }
+        .worker-inactive { background-color: #6c757d; }
+        .worker-error { background-color: #dc3545; }
+        
+        /* Alpha badge */
+        .alpha-badge {
+            background: #d63031;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 10px;
+            display: inline-block;
+        }
+        
+        .reader-container h1 {
+            color: #b71c1c;
+            display: flex;
+            align-items: center;
+        }
+        
+        .warning-note {
+            background: #fff5f5;
+            border-left: 4px solid #d63031;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+            color: #742a2a;
+        }
+
+        /* ===== ALPHA MARKDOWN CONTENT STYLES ===== */
+        /* All markdown content appears in red shades for alpha testing */
+        .markdown-body {
+            color: #b71c1c !important;
+        }
+
+        .markdown-body h1,
+        .markdown-body h2,
+        .markdown-body h3,
+        .markdown-body h4,
+        .markdown-body h5,
+        .markdown-body h6 {
+            color: #b71c1c !important;
+            border-bottom-color: #feb2b2 !important;
+        }
+
+        .markdown-body a {
+            color: #d63031 !important;
+        }
+
+        .markdown-body a:hover {
+            color: #b71c1c !important;
+        }
+
+        .markdown-body code,
+        .markdown-body pre {
+            background: #fff5f5 !important;
+            border: 1px solid #feb2b2 !important;
+            color: #742a2a !important;
+        }
+
+        .markdown-body blockquote {
+            border-left-color: #feb2b2 !important;
+            color: #b71c1c !important;
+        }
+
+        .markdown-body hr {
+            background-color: #feb2b2 !important;
+        }
+
+        .markdown-body table tr {
+            background-color: #fff5f5 !important;
+            border-top-color: #feb2b2 !important;
+        }
+
+        .markdown-body table tr:nth-child(2n) {
+            background-color: #ffe5e5 !important;
+        }
+
+        .markdown-body th,
+        .markdown-body td {
+            border-color: #feb2b2 !important;
+        }
+
+        .markdown-body .highlight {
+            background-color: #fff5f5 !important;
+        }
+
+        .markdown-body del {
+            color: #b71c1c !important;
+        }
+
+        .markdown-body mark {
+            background-color: #ffe5e5 !important;
+            color: #b71c1c !important;
+        }
+
+        .markdown-body .media {
+            border: 1px solid #feb2b2 !important;
+        }
+
+        /* Glossary section in alpha */
+        .markdown-body .g {
+            border-left: 3px solid #feb2b2 !important;
+        }
+
+        .markdown-body .gt strong {
+            color: #b71c1c !important;
+        }
+
+        /* Task lists in alpha */
+        .markdown-body .t input[type="checkbox"] {
+            border-color: #d63031 !important;
+        }
+
+        /* Footnotes in alpha */
+        .markdown-body .f {
+            border-top-color: #feb2b2 !important;
+        }
+
+        .markdown-body .b {
+            color: #d63031 !important;
+        }
+
+        /* Override any remaining blue from original CSS */
+        .markdown-body * {
+            border-color: #feb2b2 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="spinner"></div>
+    
+    <div class="reader-container">
+        <h1>
+            📄 Alpha Markdown Reader
+            <span class="alpha-badge">ALPHA</span>
+        </h1>
+
+        <div class="instructions">
+            <p><strong>Full-featured Markdown:</strong> Headings, paragraphs, bold, italic, strikethrough, highlight, subscript, superscript, links, images, blockquotes (nested), lists (ordered/unordered with adaptive indentation), task lists, tables, fenced code blocks, inline code, horizontal rules, inline HTML, line breaks, escaping, automatic video/audio embedding, and emoji support.</p>
+            <p><strong style="color: #d63031;">✨ Alpha Features:</strong> Web Workers for large files, Smart caching, Performance stats, and <strong style="color: #b71c1c;">RED MARKDOWN CONTENT</strong> for clear identification</p>
+            <p><strong>Shortcut:</strong> Ctrl+O to open files</p>
+            <div class="warning-note">
+                ⚠️ <strong>Alpha Notice:</strong> All markdown content appears in red to distinguish alpha rendering from production. 
+                Web Workers parse large files in background without freezing the UI.
+            </div>
+        </div>
+
+        <button class="browse-btn" id="browseBtn">
+            <div style="font-size: 48px; margin-bottom: 10px;">📂</div>
+            <div>Click to Open or Drag & Drop Markdown Files</div>
+            <div style="font-size: 14px; margin-top: 10px;">.md, .markdown, .txt files</div>
+        </button>
+
+        <input type="file" id="fileInput" accept=".md,.markdown,.txt" />
+
+        <div id="currentFile" class="current-file">
+            <span id="filename">No file selected</span>
+            <span id="worker-status" class="worker-inactive" title="Worker status"></span>
+        </div>
+
+        <div id="perf-stats">
+            <span class="stat-item">
+                <span class="stat-label">Size:</span>
+                <span class="stat-value" id="stat-size">0 KB</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">Time:</span>
+                <span class="stat-value" id="stat-time">0 ms</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">Method:</span>
+                <span class="stat-value" id="stat-method">-</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">Cache:</span>
+                <span class="stat-value" id="stat-cache">❌</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">Worker:</span>
+                <span class="stat-value" id="stat-worker">Ready</span>
+            </span>
+        </div>
+
+        <div id="markdown-output" class="markdown-body">
+            <p style="text-align: center; color: #999;">Select a Markdown file to view its formatted content.</p>
+        </div>
+    </div>
+
+    <!-- Load in correct order -->
+    <script src="markdown_reader/markdown_emoji.js"></script>
+    <script src="parser_agnostic/emoji.js"></script>
+    <script src="parser_agnostic/media_control.js"></script>
+    <script src="markdown_reader/markdown_alpha.js"></script>
+    
+    <!-- Worker and loader script -->
+    <script src="markdown_reader/markdown_work_load.js"></script>
+
+    <script>
+        (function() {
+            // DOM elements
+            const fileInput = document.getElementById('fileInput');
+            const browseBtn = document.getElementById('browseBtn');
+            const output = document.getElementById('markdown-output');
+            const filenameSpan = document.getElementById('filename');
+            const workerStatus = document.getElementById('worker-status');
+            const spinner = document.getElementById('spinner');
+            const perfStats = document.getElementById('perf-stats');
+            
+            // Stats elements
+            const statSize = document.getElementById('stat-size');
+            const statTime = document.getElementById('stat-time');
+            const statMethod = document.getElementById('stat-method');
+            const statCache = document.getElementById('stat-cache');
+            const statWorker = document.getElementById('stat-worker');
+
+            // Update worker status indicator
+            function updateWorkerStatus(status, message) {
+                workerStatus.className = '';
+                if (status === 'active') {
+                    workerStatus.classList.add('worker-active');
+                    workerStatus.title = message || 'Worker active';
+                    statWorker.textContent = 'Active';
+                } else if (status === 'error') {
+                    workerStatus.classList.add('worker-error');
+                    workerStatus.title = message || 'Worker error';
+                    statWorker.textContent = 'Error';
+                } else {
+                    workerStatus.classList.add('worker-inactive');
+                    workerStatus.title = message || 'Worker inactive';
+                    statWorker.textContent = 'Inactive';
+                }
+            }
+
+            // Show/hide spinner
+            function setLoading(isLoading) {
+                spinner.style.display = isLoading ? 'block' : 'none';
+            }
+
+// Update performance stats
+function updateStats(stats) {
+    if (!stats) {
+        perfStats.style.display = 'none';
+        return;
+    }
+    
+    perfStats.style.display = 'block';
+    statSize.textContent = (stats.size / 1024).toFixed(1) + ' KB';
+    statTime.textContent = stats.parseTime.toFixed(2) + ' ms';
+    
+    if (stats.usedWorker) {
+        statMethod.textContent = '🚀 Worker';
+        updateWorkerStatus('active', 'Worker processing');
+    } else {
+        statMethod.textContent = '⚡ Sync';
+        updateWorkerStatus('inactive', 'Sync parse');
+    }
+    
+    statCache.textContent = stats.usedCache ? '✅' : '❌';
+    
+    // Log for debugging
+    console.log('Stats updated:', stats);
+}
+            // Main file handler with smart parsing
+            async function handleFile(file) {
+                if (!file) {
+                    output.innerHTML = '<p style="text-align: center; color: #999;">Select a Markdown file to view its content.</p>';
+                    filenameSpan.textContent = 'No file selected';
+                    updateStats(null);
+                    return;
+                }
+
+                // Validate file type
+                const supportedTypes = ['.md', '.markdown', '.txt'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+
+                if (!supportedTypes.includes(fileExtension)) {
+                    output.innerHTML = '<p style="color: #b71c1c; text-align: center;">Please select a Markdown file (.md, .markdown, .txt)</p>';
+                    filenameSpan.textContent = file.name + ' (invalid)';
+                    updateStats(null);
+                    return;
+                }
+
+                filenameSpan.textContent = file.name;
+                setLoading(true);
+                
+                try {
+                    // Read file
+                    const text = await file.text();
+                    
+                    // Show initial message
+                    output.innerHTML = '<p style="text-align: center; color: #999;">Parsing...</p>';
+                    
+                    // Use the smart parser
+                    let result;
+                    if (window.parseMarkdownSmart) {
+                        console.log('🔴 Alpha: Using smart parser with', 
+                            window.supportsWorkers ? 'Web Workers' : 'sync fallback');
+                        
+                        result = await window.parseMarkdownSmart(text, {
+                            forceWorker: text.length > 500000 // Force worker for very large files
+                        });
+                    } else {
+                        // Fallback to regular parser
+                        console.log('🔴 Alpha: Smart parser not available, using fallback');
+                        const html = window.parseMarkdown(text);
+                        result = {
+                            html,
+                            stats: {
+                                size: text.length,
+                                parseTime: 0,
+                                usedCache: false,
+                                usedWorker: false
+                            }
+                        };
+                    }
+                    
+                    // Display result
+                    output.innerHTML = result.html;
+                    updateStats(result.stats);
+                    
+                    // Add alpha watermark
+                    console.log('🔴 Alpha rendering complete - all content is red for identification');
+                    
+                } catch (error) {
+                    console.error('🔴 Alpha error:', error);
+                    output.innerHTML = `<p style="color: #b71c1c; text-align: center;">Error parsing file: ${error.message}</p>`;
+                    updateWorkerStatus('error', error.message);
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            // Event listeners
+            fileInput.addEventListener('change', (event) => {
+                handleFile(event.target.files[0]);
+            });
+
+            browseBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Drag and drop
+            browseBtn.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                browseBtn.classList.add('drag-over');
+            });
+
+            browseBtn.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                browseBtn.classList.remove('drag-over');
+            });
+
+            browseBtn.addEventListener('drop', (e) => {
+                e.preventDefault();
+                browseBtn.classList.remove('drag-over');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+
+            // Keyboard shortcut
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                    e.preventDefault();
+                    fileInput.click();
+                }
+            });
+
+            // Initialize on load
+            window.addEventListener('load', () => {
+                browseBtn.focus();
+                
+                // Check if smart parser is available
+                if (window.parseMarkdownSmart) {
+                    console.log('🔴 Alpha features enabled:', {
+                        workers: window.supportsWorkers ? 'supported ✅' : 'not supported ❌',
+                        threshold: window.CONFIG?.WORKER_THRESHOLD || 102400,
+                        version: '1.0.0-alpha',
+                        note: 'All markdown content appears in red for alpha identification'
+                    });
+                    
+                    // Show welcome message
+                    const welcomeMsg = document.createElement('div');
+                    welcomeMsg.style.cssText = 'background: #fff5f5; color: #742a2a; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; border-left: 4px solid #d63031;';
+                    welcomeMsg.innerHTML = '🔴 <strong>Alpha Mode Active</strong> - Web Workers ' + 
+                        (window.supportsWorkers ? '✅ enabled' : '❌ not supported') + 
+                        '<br>📕 <strong>Red Content:</strong> All markdown renders in red to distinguish alpha from production.';
+                    
+                    const container = document.querySelector('.instructions');
+                    container.parentNode.insertBefore(welcomeMsg, container.nextSibling);
+                }
+            });
+
+            // Expose for console testing
+            window.testParser = {
+                small: () => handleFile(new File(['# Test\nSmall file'], 'test.md', { type: 'text/markdown' })),
+                medium: () => {
+                    const text = '# Medium Test\n\n' + 'word '.repeat(5000);
+                    return handleFile(new File([text], 'medium.md', { type: 'text/markdown' }));
+                },
+                large: () => {
+                    const text = '# Large Test\n\n' + 'word '.repeat(10000);
+                    return handleFile(new File([text], 'large.md', { type: 'text/markdown' }));
+                },
+                huge: () => {
+                    const text = '# Huge Test\n\n' + 'word '.repeat(100000);
+                    return handleFile(new File([text], 'huge.md', { type: 'text/markdown' }));
+                }
+            };
+            
+            // Add alpha tester info
+            console.log('🔴 Alpha tester commands:', {
+                'testParser.small()': 'Test with small file',
+                'testParser.medium()': 'Test with medium file',
+                'testParser.large()': 'Test with large file',
+                'testParser.huge()': 'Test with huge file (worker)',
+                'note': 'All output will be red - this is intentional for alpha builds'
+            });
+        })();
+    </script>
+</body>
+</html>

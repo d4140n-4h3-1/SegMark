@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Standard Markdown Reader</title>
+    <link rel="stylesheet" href="markdown_reader/markdown_standard.css">
+    <style>
+        /* File input styling only - not markdown rendering */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative; /* For spinner positioning */
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .browse-btn {
+            background: #0366d6;
+            border: none;
+            border-radius: 5px;
+            display: block;
+            padding: 30px 20px;
+            font-size: 18px;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            margin: 20px 0;
+            width: 100%;
+            transition: background 0.3s ease;
+        }
+
+        .browse-btn:hover {
+            background: #0056b3;
+        }
+
+        .browse-btn.drag-over {
+            background: #0056b3;
+            border: 2px dashed #ffffff;
+        }
+
+        .instructions {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 5px;
+            color: #24292e;
+            margin-bottom: 20px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .current-file {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 5px;
+            color: #0366d6;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 10px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #stats-badge {
+            font-size: 12px;
+            font-weight: normal;
+            color: #24292e;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 12px;
+            border: 1px solid #e1e4e8;
+        }
+
+        /* Performance stats panel */
+        #perf-stats {
+            font-family: monospace;
+            font-size: 11px;
+            color: #24292e;
+            margin-top: 10px;
+            padding: 8px;
+            background: #f6f8fa;
+            border-radius: 3px;
+            border: 1px solid #e1e4e8;
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            display: inline-block;
+            margin-right: 15px;
+        }
+
+        .stat-label {
+            color: #0366d6;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #24292e;
+        }
+
+        /* Worker status indicator */
+        #worker-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+        .worker-active { background-color: #28a745; }
+        .worker-inactive { background-color: #6c757d; }
+        .worker-error { background-color: #dc3545; }
+
+        /* Markdown output area */
+        #markdown-output {
+            min-height: 400px;
+            margin-top: 20px;
+            position: relative;
+            border: 1px solid #e1e4e8;
+            border-radius: 5px;
+            padding: 20px;
+            background: #ffffff;
+        }
+
+        /* Centered spinner - positioned lower */
+        .spinner-wrapper {
+            position: absolute;
+            top: 100px; /* Position below the status bar */
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 0.3s ease;
+        }
+
+        .spinner-wrapper.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        #spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0366d6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner-text {
+            color: #0366d6;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            background: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Placeholder text styling */
+        .placeholder-text {
+            text-align: center;
+            color: #999;
+            margin-top: 100px;
+            font-style: italic;
+        }
+
+        ::selection {
+            color: black;
+            background: #b4d5ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="margin-top: 0; color: #0366d6;">📄 Markdown Reader</h1>
+
+        <div class="instructions">
+            <p><strong>Full-featured Markdown:</strong> Headings, paragraphs, bold, italic, strikethrough, highlight, subscript, superscript, links, images, blockquotes (nested), lists (ordered/unordered with adaptive indentation), task lists, tables, fenced code blocks, inline code, horizontal rules, inline HTML, line breaks, escaping, automatic video/audio embedding, and emoji support.</p>
+            <p><strong>✨ Features:</strong> Web Workers for large files, Smart caching, Performance stats</p>
+            <p><strong>Shortcut:</strong> Ctrl+O to open files</p>
+        </div>
+
+        <button class="browse-btn" id="browseBtn">
+            <div style="font-size: 48px; margin-bottom: 10px;">📂</div>
+            <div>Click to Open or Drag & Drop Markdown Files</div>
+            <div style="font-size: 14px; margin-top: 10px;">.md, .markdown, .txt files</div>
+        </button>
+
+        <input type="file" id="fileInput" accept=".md,.markdown,.txt" />
+
+        <div id="currentFile" class="current-file">
+            <span id="filename">No file selected</span>
+            <span>
+                <span id="stats-badge">Stats</span>
+                <span id="worker-status" class="worker-inactive" title="Worker status"></span>
+            </span>
+        </div>
+
+        <div id="perf-stats">
+            <span class="stat-item">
+                <span class="stat-label">Size:</span>
+                <span class="stat-value" id="stat-size">0 KB</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">Time:</span>
+                <span class="stat-value" id="stat-time">0 ms</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">Method:</span>
+                <span class="stat-value" id="stat-method">-</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">Cache:</span>
+                <span class="stat-value" id="stat-cache">❌</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">Worker:</span>
+                <span class="stat-value" id="stat-worker">Ready</span>
+            </span>
+        </div>
+
+        <div id="markdown-output" class="markdown-body">
+            <!-- Spinner positioned lower in the content area -->
+            <div class="spinner-wrapper hidden" id="spinnerWrapper">
+                <div id="spinner"></div>
+                <div class="spinner-text">Parsing markdown...</div>
+            </div>
+            <p class="placeholder-text">Select a Markdown file to view its formatted content.</p>
+        </div>
+    </div>
+
+    <script src="markdown_reader/markdown_emoji.js"></script>
+    <script src="parser_agnostic/emoji.js"></script>
+    <script src="parser_agnostic/media_control.js"></script>
+    <script src="markdown_reader/markdown_standard.js"></script>
+
+    <!-- Sanitizer - auto-enables on load -->
+    <script src="markdown_reader/markdown_sanitize.js"></script>
+
+    <!-- Worker and loader script -->
+    <script src="markdown_reader/markdown_work_load.js"></script>
+
+    <script>
+        (function() {
+            // DOM elements
+            const fileInput = document.getElementById('fileInput');
+            const browseBtn = document.getElementById('browseBtn');
+            const output = document.getElementById('markdown-output');
+            const filenameSpan = document.getElementById('filename');
+            const workerStatus = document.getElementById('worker-status');
+            const perfStats = document.getElementById('perf-stats');
+            const spinnerWrapper = document.getElementById('spinnerWrapper');
+            const placeholderText = document.querySelector('.placeholder-text');
+            
+            // Stats elements
+            const statSize = document.getElementById('stat-size');
+            const statTime = document.getElementById('stat-time');
+            const statMethod = document.getElementById('stat-method');
+            const statCache = document.getElementById('stat-cache');
+            const statWorker = document.getElementById('stat-worker');
+
+            // Update worker status indicator
+            function updateWorkerStatus(status, message) {
+                workerStatus.className = '';
+                if (status === 'active') {
+                    workerStatus.classList.add('worker-active');
+                    workerStatus.title = message || 'Worker active';
+                    statWorker.textContent = 'Active';
+                } else if (status === 'error') {
+                    workerStatus.classList.add('worker-error');
+                    workerStatus.title = message || 'Worker error';
+                    statWorker.textContent = 'Error';
+                } else {
+                    workerStatus.classList.add('worker-inactive');
+                    workerStatus.title = message || 'Worker inactive';
+                    statWorker.textContent = 'Inactive';
+                }
+            }
+
+            // Show/hide centered spinner (lower position)
+            function setLoading(isLoading) {
+                if (isLoading) {
+                    spinnerWrapper.classList.remove('hidden');
+                    if (placeholderText) placeholderText.style.display = 'none';
+                } else {
+                    spinnerWrapper.classList.add('hidden');
+                    if (placeholderText) placeholderText.style.display = 'block';
+                }
+            }
+
+            // Update performance stats
+            function updateStats(stats) {
+                if (!stats) {
+                    perfStats.style.display = 'none';
+                    return;
+                }
+                
+                perfStats.style.display = 'block';
+                statSize.textContent = (stats.size / 1024).toFixed(1) + ' KB';
+                statTime.textContent = stats.parseTime.toFixed(2) + ' ms';
+                
+                if (stats.usedWorker) {
+                    statMethod.textContent = '🚀 Worker';
+                    updateWorkerStatus('active', 'Worker processing');
+                } else {
+                    statMethod.textContent = '⚡ Sync';
+                    updateWorkerStatus('inactive', 'Sync parse');
+                }
+                
+                statCache.textContent = stats.usedCache ? '✅' : '❌';
+                
+                console.log('Stats updated:', stats);
+            }
+
+            // Main file handler with smart parsing
+            async function handleFile(file) {
+                if (!file) {
+                    output.innerHTML = '<div class="spinner-wrapper hidden" id="spinnerWrapper"><div id="spinner"></div><div class="spinner-text">Parsing markdown...</div></div><p class="placeholder-text">Select a Markdown file to view its formatted content.</p>';
+                    // Re-assign references
+                    spinnerWrapper.className = 'spinner-wrapper hidden';
+                    filenameSpan.textContent = 'No file selected';
+                    updateStats(null);
+                    return;
+                }
+
+                // Validate file type
+                const supportedTypes = ['.md', '.markdown', '.txt'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+
+                if (!supportedTypes.includes(fileExtension)) {
+                    output.innerHTML = '<div class="spinner-wrapper hidden" id="spinnerWrapper"><div id="spinner"></div><div class="spinner-text">Parsing markdown...</div></div><p style="color: red; text-align: center; margin-top: 100px;">Please select a Markdown file (.md, .markdown, .txt)</p>';
+                    // Re-assign references
+                    spinnerWrapper.className = 'spinner-wrapper hidden';
+                    filenameSpan.textContent = file.name + ' (invalid)';
+                    updateStats(null);
+                    return;
+                }
+
+                filenameSpan.textContent = file.name;
+                setLoading(true);
+                
+                try {
+                    // Read file
+                    const text = await file.text();
+                    
+                    // Use the smart parser
+                    let result;
+                    if (window.parseMarkdownSmart) {
+                        console.log('Using smart parser with', 
+                            window.supportsWorkers ? 'Web Workers' : 'sync fallback');
+                        
+                        result = await window.parseMarkdownSmart(text, {
+                            forceWorker: text.length > 500000 // Force worker for very large files
+                        });
+                    } else {
+                        // Fallback to regular parser
+                        console.log('Smart parser not available, using fallback');
+                        const html = window.parseMarkdown(text);
+                        result = {
+                            html,
+                            stats: {
+                                size: text.length,
+                                parseTime: 0,
+                                usedCache: false,
+                                usedWorker: false
+                            }
+                        };
+                    }
+                    
+                    // Display result
+                    output.innerHTML = result.html;
+                    // Re-add spinner wrapper for next time (at the bottom)
+                    const newSpinnerWrapper = document.createElement('div');
+                    newSpinnerWrapper.className = 'spinner-wrapper hidden';
+                    newSpinnerWrapper.id = 'spinnerWrapper';
+                    newSpinnerWrapper.innerHTML = '<div id="spinner"></div><div class="spinner-text">Parsing markdown...</div>';
+                    output.appendChild(newSpinnerWrapper);
+                    
+                    updateStats(result.stats);
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    output.innerHTML = `<div class="spinner-wrapper hidden" id="spinnerWrapper"><div id="spinner"></div><div class="spinner-text">Parsing markdown...</div></div><p style="color: red; text-align: center; margin-top: 100px;">Error parsing file: ${error.message}</p>`;
+                    updateWorkerStatus('error', error.message);
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            // Event listeners
+            fileInput.addEventListener('change', (event) => {
+                handleFile(event.target.files[0]);
+            });
+
+            browseBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Drag and drop
+            browseBtn.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                browseBtn.classList.add('drag-over');
+            });
+
+            browseBtn.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                browseBtn.classList.remove('drag-over');
+            });
+
+            browseBtn.addEventListener('drop', (e) => {
+                e.preventDefault();
+                browseBtn.classList.remove('drag-over');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+
+            // Keyboard shortcut
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                    e.preventDefault();
+                    fileInput.click();
+                }
+            });
+
+            // Initialize on load
+            window.addEventListener('load', () => {
+                browseBtn.focus();
+                
+                // Check if smart parser is available
+                if (window.parseMarkdownSmart) {
+                    console.log('Enhanced features enabled:', {
+                        workers: window.supportsWorkers ? 'supported ✅' : 'not supported ❌',
+                        threshold: window.CONFIG?.WORKER_THRESHOLD || 102400,
+                    });
+                }
+            });
+
+            // Expose for console testing
+            window.testParser = {
+                small: () => handleFile(new File(['# Test\nSmall file'], 'test.md', { type: 'text/markdown' })),
+                medium: () => {
+                    const text = '# Medium Test\n\n' + 'word '.repeat(5000);
+                    return handleFile(new File([text], 'medium.md', { type: 'text/markdown' }));
+                },
+                large: () => {
+                    const text = '# Large Test\n\n' + 'word '.repeat(10000);
+                    return handleFile(new File([text], 'large.md', { type: 'text/markdown' }));
+                },
+                huge: () => {
+                    const text = '# Huge Test\n\n' + 'word '.repeat(100000);
+                    return handleFile(new File([text], 'huge.md', { type: 'text/markdown' }));
+                }
+            };
+        })();
+    </script>
+</body>
+</html>
