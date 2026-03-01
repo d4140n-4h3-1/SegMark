@@ -24,3 +24,7 @@ It is not fully CommonMark compliant.
 There is no plugin system. As far as I can tell, you should simply load a JS file via a script tag. 
 
 There is stable and an alpha version. The alpha version is always red. 
+
+## How to Use
+
+Just open the stable HTML file in a browser, and place a Markdown file in the drop zone. Keep in mind edge cases are not well supported. 
