@@ -1,5 +1,7 @@
 # SegMark 
-### A Markdown Reader with most features in one file. 
+### A Markdown Reader with most features in one file, and others segregated from it. 
+
+The main Markdown reader does one job, and one job only; render Markdown. The rest are optional. 
 
 ## Features
 
