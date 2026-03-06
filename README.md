@@ -9,6 +9,20 @@ The main Markdown reader does one job, and one job only; render Markdown. The re
 
 2. Raw nesting is supported. 
 
+## Alpha Features
+
+markdown_alpha.html searches for .mdeb (Markdown Ebook) folders. This is a workaround to enable book.md to load images relative to its location, and works almost as if it's a binary format. Images are self-contained. If you upload a folder containing multiple .mdeb files, you should see a scrollable list of them. 
+
+Dragging and dropping files does not load images correctly if the Markdown file is not relative to the HTML file. The structure should look like this. 
+
+```
+.
+└── test.mdeb
+    ├── book.md
+    ├── contributions.md
+    └── images
+```
+
 ## Special Features
 
 1. Video and audio are supported exactly the same way as photos. 
