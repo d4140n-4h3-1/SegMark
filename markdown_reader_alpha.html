@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Alpha Markdown Reader</title>
-    <link rel="stylesheet" href="markdown_reader/markdown_stable.css">
+    <link rel="stylesheet" href="markdown_reader/markdown_standard.css">
     <style>
         /* ===== UI STYLES ONLY ===== */
         /* These ONLY affect the reader interface, NOT markdown content */
@@ -22,34 +22,75 @@
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
         }
 
-        #fileInput {
+        #folderPicker, #filePicker {
             display: none;
         }
 
-        .browse-btn {
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
             background: #d63031;
             border: none;
             border-radius: 5px;
-            display: block;
-            padding: 30px 20px;
-            font-size: 18px;
+            padding: 20px;
+            font-size: 16px;
             color: white;
             cursor: pointer;
             text-align: center;
-            margin: 20px 0;
-            width: 100%;
+            flex: 1;
+            min-width: 200px;
             transition: background 0.3s ease;
         }
 
-        .browse-btn:hover {
+        .action-btn:hover {
             background: #b71c1c;
         }
 
-        .browse-btn.drag-over {
-            background: #b71c1c;
-            border: 2px dashed #ffffff;
+        .action-btn.secondary {
+            background: #742a2a;
+        }
+
+        .action-btn.secondary:hover {
+            background: #4a1a1a;
+        }
+
+        .drop-zone {
+            border: 3px dashed #feb2b2;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background: #fff5f5;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.drag-over {
+            background: #feb2b2;
+            border-color: #d63031;
+            transform: scale(1.02);
+        }
+
+        .drop-zone.drag-over .drop-text {
+            color: white;
+        }
+
+        .drop-text {
+            font-size: 18px;
+            color: #742a2a;
+            margin-bottom: 10px;
+        }
+
+        .drop-hint {
+            font-size: 14px;
+            color: #b71c1c;
         }
 
         .instructions {
@@ -84,26 +125,69 @@
             padding: 4px 8px;
             border-radius: 12px;
             border: 1px solid #feb2b2;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #stats-badge:hover {
+            background: #d63031;
+            color: white;
         }
 
         /* Spinner for async operations */
-        #spinner {
+        #spinner-overlay {
             display: none;
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 5px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        #spinner-overlay.active {
+            display: block;
+            pointer-events: all;
+        }
+
+        .spinner-container {
+            position: sticky;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        #spinner {
+            width: 50px;
+            height: 50px;
             border: 4px solid #f3f3f3;
             border-top: 4px solid #d63031;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            z-index: 1000;
+            margin: 0 auto;
         }
         
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        .spinner-text {
+            color: #d63031;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         /* Performance stats panel */
@@ -112,16 +196,27 @@
             font-size: 11px;
             color: #742a2a;
             margin-top: 10px;
-            padding: 8px;
+            padding: 12px;
             background: #fff5f5;
             border-radius: 3px;
             border: 1px solid #feb2b2;
             display: none;
         }
 
+        .stat-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 8px;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
         .stat-item {
             display: inline-block;
-            margin-right: 15px;
+            min-width: 120px;
         }
 
         .stat-label {
@@ -132,6 +227,73 @@
             font-weight: 600;
             color: #d63031;
         }
+
+        .cache-level {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #feb2b2;
+            color: #742a2a;
+            margin-left: 5px;
+        }
+
+        .cache-level.tiny { background: #ffcdb2; color: #8b3a1a; }
+        .cache-level.small { background: #ffb2b2; color: #8b1a1a; }
+        .cache-level.medium { background: #feb2b2; color: #742a2a; }
+        .cache-level.large { background: #fc9a9a; color: #5c1a1a; }
+        .cache-level.huge { background: #f57a7a; color: #450a0a; }
+
+        .memory-bar {
+            width: 100%;
+            height: 6px;
+            background: #feb2b2;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+
+        .memory-bar-fill {
+            height: 100%;
+            background: #d63031;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .detail-panel {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff0f0;
+            border: 1px solid #feb2b2;
+            border-radius: 3px;
+            display: none;
+        }
+
+        .detail-panel.visible {
+            display: block;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .detail-item {
+            font-size: 11px;
+        }
+
+        .detail-label {
+            color: #742a2a;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #b71c1c;
+        }
+
+        .metric-good { color: #28a745; }
+        .metric-warn { color: #f90; }
+        .metric-bad { color: #dc3545; }
 
         /* Worker status indicator */
         #worker-status {
@@ -172,8 +334,65 @@
             color: #742a2a;
         }
 
+        .cache-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .cache-btn {
+            font-size: 11px;
+            padding: 3px 8px;
+            background: #fff;
+            border: 1px solid #feb2b2;
+            border-radius: 3px;
+            cursor: pointer;
+            color: #d63031;
+        }
+
+        .cache-btn:hover {
+            background: #ffe5e5;
+            border-color: #d63031;
+        }
+
+        /* File list panel */
+        .file-list {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            border-radius: 5px;
+            margin: 10px 0;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .file-item, .folder-item {
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            color: #742a2a;
+        }
+
+        .file-item:hover, .folder-item:hover {
+            background: #feb2b2;
+            color: white;
+        }
+
+        .file-item.selected, .folder-item.selected {
+            background: #d63031;
+            color: white;
+        }
+
+        .mdeb-badge {
+            background: #b71c1c;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
         /* ===== ALPHA MARKDOWN CONTENT STYLES ===== */
-        /* All markdown content appears in red shades for alpha testing */
         .markdown-body {
             color: #b71c1c !important;
         }
@@ -243,7 +462,6 @@
             border: 1px solid #feb2b2 !important;
         }
 
-        /* Glossary section in alpha */
         .markdown-body .g {
             border-left: 3px solid #feb2b2 !important;
         }
@@ -252,12 +470,10 @@
             color: #b71c1c !important;
         }
 
-        /* Task lists in alpha */
         .markdown-body .t input[type="checkbox"] {
             border-color: #d63031 !important;
         }
 
-        /* Footnotes in alpha */
         .markdown-body .f {
             border-top-color: #feb2b2 !important;
         }
@@ -266,69 +482,118 @@
             color: #d63031 !important;
         }
 
-        /* Override any remaining blue from original CSS */
         .markdown-body * {
             border-color: #feb2b2 !important;
         }
     </style>
 </head>
 <body>
-    <div id="spinner"></div>
-    
     <div class="reader-container">
         <h1>
             📄 Alpha Markdown Reader
             <span class="alpha-badge">ALPHA</span>
+            <span class="mdeb-badge">.mdeb</span>
         </h1>
 
         <div class="instructions">
             <p><strong>Full-featured Markdown:</strong> Headings, paragraphs, bold, italic, strikethrough, highlight, subscript, superscript, links, images, blockquotes (nested), lists (ordered/unordered with adaptive indentation), task lists, tables, fenced code blocks, inline code, horizontal rules, inline HTML, line breaks, escaping, automatic video/audio embedding, and emoji support.</p>
-            <p><strong style="color: #d63031;">✨ Alpha Features:</strong> Web Workers for large files, Smart caching, Performance stats, and <strong style="color: #b71c1c;">RED MARKDOWN CONTENT</strong> for clear identification</p>
-            <p><strong>Shortcut:</strong> Ctrl+O to open files</p>
+            <p><strong style="color: #d63031;">✨ Alpha Features:</strong> Web Workers for large files, Smart caching (5 levels), Performance stats, Memory management, and <strong style="color: #b71c1c;">RED MARKDOWN CONTENT</strong> for clear identification</p>
+            <p><strong style="color: #d63031;">📁 Multiple Input Methods:</strong> Click buttons, drag & drop files or folders!</p>
             <div class="warning-note">
                 ⚠️ <strong>Alpha Notice:</strong> All markdown content appears in red to distinguish alpha rendering from production. 
                 Web Workers parse large files in background without freezing the UI.
             </div>
         </div>
 
-        <button class="browse-btn" id="browseBtn">
-            <div style="font-size: 48px; margin-bottom: 10px;">📂</div>
-            <div>Click to Open or Drag & Drop Markdown Files</div>
-            <div style="font-size: 14px; margin-top: 10px;">.md, .markdown, .txt files</div>
-        </button>
+        <div class="button-group">
+            <button class="action-btn" id="folderBtn">📁 Select Folder (.mdeb ebooks)</button>
+            <button class="action-btn secondary" id="fileBtn">📄 Select Markdown File</button>
+        </div>
 
-        <input type="file" id="fileInput" accept=".md,.markdown,.txt" />
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-text">📄 Drag & Drop .md Files Here</div>
+        </div>
+
+        <input type="file" id="folderPicker" webkitdirectory directory style="display: none;" />
+        <input type="file" id="filePicker" accept=".md,.markdown,.txt" style="display: none;" />
 
         <div id="currentFile" class="current-file">
             <span id="filename">No file selected</span>
-            <span id="worker-status" class="worker-inactive" title="Worker status"></span>
+            <span>
+                <span id="stats-badge">📊 Stats</span>
+                <span id="worker-status" class="worker-inactive" title="Worker status"></span>
+            </span>
+        </div>
+
+        <div id="fileList" class="file-list" style="display: none;">
+            <!-- File list will appear here -->
         </div>
 
         <div id="perf-stats">
-            <span class="stat-item">
-                <span class="stat-label">Size:</span>
-                <span class="stat-value" id="stat-size">0 KB</span>
-            </span>
-            <span class="stat-item">
-                <span class="stat-label">Time:</span>
-                <span class="stat-value" id="stat-time">0 ms</span>
-            </span>
-            <span class="stat-item">
-                <span class="stat-label">Method:</span>
-                <span class="stat-value" id="stat-method">-</span>
-            </span>
-            <span class="stat-item">
-                <span class="stat-label">Cache:</span>
-                <span class="stat-value" id="stat-cache">❌</span>
-            </span>
-            <span class="stat-item">
-                <span class="stat-label">Worker:</span>
-                <span class="stat-value" id="stat-worker">Ready</span>
-            </span>
+            <div class="stat-row">
+                <span class="stat-item">
+                    <span class="stat-label">Size:</span>
+                    <span class="stat-value" id="stat-size">0 KB</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Time:</span>
+                    <span class="stat-value" id="stat-time">0 ms</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Method:</span>
+                    <span class="stat-value" id="stat-method">-</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Cache:</span>
+                    <span class="stat-value" id="stat-cache">❌</span>
+                    <span class="cache-level" id="cache-level-badge" style="display: none;"></span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Worker:</span>
+                    <span class="stat-value" id="stat-worker">Ready</span>
+                </span>
+            </div>
+            
+            <div class="memory-bar" id="memory-bar">
+                <div class="memory-bar-fill" id="memory-bar-fill" style="width: 0%;"></div>
+            </div>
+            
+            <div class="stat-row" style="justify-content: space-between;">
+                <span class="stat-item">
+                    <span class="stat-label">Cache Memory:</span>
+                    <span class="stat-value" id="stat-memory">0 MB / 50 MB</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Hit Rate:</span>
+                    <span class="stat-value" id="stat-hitrate">0%</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Entries:</span>
+                    <span class="stat-value" id="stat-entries">0</span>
+                </span>
+            </div>
+            
+            <div class="cache-controls">
+                <button class="cache-btn" id="show-details-btn">📊 Show Details</button>
+                <button class="cache-btn" id="clear-cache-btn">🗑️ Clear Cache</button>
+                <button class="cache-btn" id="refresh-stats-btn">🔄 Refresh</button>
+            </div>
+            
+            <div class="detail-panel" id="cache-details">
+                <div class="detail-grid" id="cache-details-grid">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
         </div>
 
         <div id="markdown-output" class="markdown-body">
-            <p style="text-align: center; color: #999;">Select a Markdown file to view its formatted content.</p>
+            <div id="spinner-overlay">
+                <div class="spinner-container">
+                    <div id="spinner"></div>
+                    <div class="spinner-text">Parsing markdown...</div>
+                </div>
+            </div>
+            <p style="text-align: center; color: #999;">Select a file, folder, or drag & drop to begin.</p>
         </div>
     </div>
 
@@ -336,21 +601,29 @@
     <script src="markdown_reader/markdown_emoji.js"></script>
     <script src="parser_agnostic/emoji.js"></script>
     <script src="parser_agnostic/media_control.js"></script>
-    <script src="markdown_reader/markdown_alpha.js"></script>
+    <script src="markdown_reader/markdown_standard.js"></script>
     
+    <!-- Sanitizer - auto-enables on load -->
+    <script src="markdown_reader/markdown_sanitize.js"></script>
+
     <!-- Worker and loader script -->
     <script src="markdown_reader/markdown_work_load.js"></script>
 
     <script>
         (function() {
+
             // DOM elements
-            const fileInput = document.getElementById('fileInput');
-            const browseBtn = document.getElementById('browseBtn');
+            const folderPicker = document.getElementById('folderPicker');
+            const filePicker = document.getElementById('filePicker');
+            const folderBtn = document.getElementById('folderBtn');
+            const fileBtn = document.getElementById('fileBtn');
+            const dropZone = document.getElementById('dropZone');
             const output = document.getElementById('markdown-output');
             const filenameSpan = document.getElementById('filename');
+            const fileListDiv = document.getElementById('fileList');
             const workerStatus = document.getElementById('worker-status');
-            const spinner = document.getElementById('spinner');
             const perfStats = document.getElementById('perf-stats');
+            const spinnerOverlay = document.getElementById('spinner-overlay');
             
             // Stats elements
             const statSize = document.getElementById('stat-size');
@@ -358,6 +631,19 @@
             const statMethod = document.getElementById('stat-method');
             const statCache = document.getElementById('stat-cache');
             const statWorker = document.getElementById('stat-worker');
+            const statMemory = document.getElementById('stat-memory');
+            const statHitrate = document.getElementById('stat-hitrate');
+            const statEntries = document.getElementById('stat-entries');
+            const memoryBarFill = document.getElementById('memory-bar-fill');
+            const cacheLevelBadge = document.getElementById('cache-level-badge');
+            const cacheDetails = document.getElementById('cache-details');
+            const cacheDetailsGrid = document.getElementById('cache-details-grid');
+            
+            // Store all files from the selected folder
+            let allFiles = [];
+            let currentFile = null;
+            let currentStats = null;
+            let mdebFolders = new Map();
 
             // Update worker status indicator
             function updateWorkerStatus(status, message) {
@@ -377,77 +663,166 @@
                 }
             }
 
-            // Show/hide spinner
+            // Show/hide centered spinner
             function setLoading(isLoading) {
-                spinner.style.display = isLoading ? 'block' : 'none';
+                if (isLoading) {
+                    spinnerOverlay.classList.add('active');
+                } else {
+                    spinnerOverlay.classList.remove('active');
+                }
             }
 
-// Update performance stats
-function updateStats(stats) {
-    if (!stats) {
-        perfStats.style.display = 'none';
-        return;
-    }
-    
-    perfStats.style.display = 'block';
-    statSize.textContent = (stats.size / 1024).toFixed(1) + ' KB';
-    statTime.textContent = stats.parseTime.toFixed(2) + ' ms';
-    
-    if (stats.usedWorker) {
-        statMethod.textContent = '🚀 Worker';
-        updateWorkerStatus('active', 'Worker processing');
-    } else {
-        statMethod.textContent = '⚡ Sync';
-        updateWorkerStatus('inactive', 'Sync parse');
-    }
-    
-    statCache.textContent = stats.usedCache ? '✅' : '❌';
-    
-    // Log for debugging
-    console.log('Stats updated:', stats);
-}
-            // Main file handler with smart parsing
-            async function handleFile(file) {
-                if (!file) {
-                    output.innerHTML = '<p style="text-align: center; color: #999;">Select a Markdown file to view its content.</p>';
-                    filenameSpan.textContent = 'No file selected';
-                    updateStats(null);
+            // Get cache level class
+            function getCacheLevelClass(level) {
+                switch(level) {
+                    case 'tiny': return 'cache-level tiny';
+                    case 'small': return 'cache-level small';
+                    case 'medium': return 'cache-level medium';
+                    case 'large': return 'cache-level large';
+                    case 'huge': return 'cache-level huge';
+                    default: return 'cache-level';
+                }
+            }
+
+            // Update cache details panel
+            async function updateCacheDetails() {
+                if (!window.getCacheStats) return;
+                
+                const stats = window.getCacheStats();
+                
+                // Update detail grid
+                let html = '';
+                
+                Object.entries(stats.levels).forEach(([level, data]) => {
+                    const hitRateClass = data.hitRate > '50%' ? 'metric-good' : (data.hitRate > '20%' ? 'metric-warn' : 'metric-bad');
+                    
+                    html += `
+                        <div class="detail-item">
+                            <strong class="${getCacheLevelClass(level).replace('cache-level', '')}">${level.toUpperCase()}</strong><br>
+                            <span class="detail-label">Entries:</span> <span class="detail-value">${data.entries}/${data.maxSize}</span><br>
+                            <span class="detail-label">Memory:</span> <span class="detail-value">${data.memoryMB} MB</span><br>
+                            <span class="detail-label">Hit Rate:</span> <span class="detail-value ${hitRateClass}">${data.hitRate}</span><br>
+                            <span class="detail-label">Hits/Misses:</span> <span class="detail-value">${data.hits}/${data.misses}</span><br>
+                            <span class="detail-label">TTL:</span> <span class="detail-value">${data.ttl}</span>
+                        </div>
+                    `;
+                });
+                
+                // Add performance metrics
+                if (stats.performance) {
+                    html += `
+                        <div class="detail-item">
+                            <strong>PERFORMANCE</strong><br>
+                            <span class="detail-label">Avg Parse:</span> <span class="detail-value">${stats.performance.avgParseTime}</span><br>
+                            <span class="detail-label">Avg Worker:</span> <span class="detail-value">${stats.performance.avgWorkerTime}</span><br>
+                        </div>
+                    `;
+                }
+                
+                cacheDetailsGrid.innerHTML = html;
+            }
+
+            // Update cache stats display
+            async function updateCacheStats() {
+                if (!window.getCacheStats) return;
+                
+                const stats = window.getCacheStats();
+                
+                // Update memory usage
+                const memoryPercent = (parseFloat(stats.total.memoryMB) / parseFloat(stats.total.maxMemoryMB)) * 100;
+                statMemory.textContent = `${stats.total.memoryMB} MB / ${stats.total.maxMemoryMB} MB`;
+                memoryBarFill.style.width = `${Math.min(memoryPercent, 100)}%`;
+                
+                // Update hit rate
+                statHitrate.textContent = stats.total.hitRate;
+                statHitrate.className = stats.total.hitRate > '50%' ? 'stat-value metric-good' : 
+                                       (stats.total.hitRate > '20%' ? 'stat-value metric-warn' : 'stat-value metric-bad');
+                
+                // Update entries
+                statEntries.textContent = stats.total.entries;
+                
+                // Update cache level badge if current file was cached
+                if (currentStats?.usedCache && currentStats?.cacheLevel) {
+                    cacheLevelBadge.style.display = 'inline-block';
+                    cacheLevelBadge.className = getCacheLevelClass(currentStats.cacheLevel);
+                    cacheLevelBadge.textContent = currentStats.cacheLevel;
+                } else {
+                    cacheLevelBadge.style.display = 'none';
+                }
+                
+                // Update details panel if visible
+                if (cacheDetails.classList.contains('visible')) {
+                    await updateCacheDetails();
+                }
+            }
+
+            // Update performance stats
+            function updateStats(stats) {
+                currentStats = stats;
+                
+                if (!stats) {
+                    perfStats.style.display = 'none';
                     return;
                 }
-
-                // Validate file type
-                const supportedTypes = ['.md', '.markdown', '.txt'];
-                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-
-                if (!supportedTypes.includes(fileExtension)) {
-                    output.innerHTML = '<p style="color: #b71c1c; text-align: center;">Please select a Markdown file (.md, .markdown, .txt)</p>';
-                    filenameSpan.textContent = file.name + ' (invalid)';
-                    updateStats(null);
-                    return;
+                
+                perfStats.style.display = 'block';
+                statSize.textContent = (stats.size / 1024).toFixed(1) + ' KB';
+                statTime.textContent = stats.parseTime.toFixed(2) + ' ms';
+                
+                if (stats.usedWorker) {
+                    statMethod.textContent = '🚀 Worker';
+                    updateWorkerStatus('active', 'Worker processing');
+                } else {
+                    statMethod.textContent = '⚡ Sync';
+                    updateWorkerStatus('inactive', 'Sync parse');
                 }
+                
+                statCache.textContent = stats.usedCache ? '✅' : '❌';
+                
+                if (stats.usedCache && stats.cacheLevel) {
+                    cacheLevelBadge.style.display = 'inline-block';
+                    cacheLevelBadge.className = getCacheLevelClass(stats.cacheLevel);
+                    cacheLevelBadge.textContent = stats.cacheLevel;
+                } else {
+                    cacheLevelBadge.style.display = 'none';
+                }
+                
+                // Update cache stats
+                updateCacheStats();
+                
+                console.log('🔴 Stats updated:', stats);
+            }
 
+            // Helper function to read file as data URL
+            function readFileAsDataURL(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Load a single markdown file (no images)
+            async function loadSingleMarkdownFile(file) {
+                currentFile = file;
                 filenameSpan.textContent = file.name;
                 setLoading(true);
                 
                 try {
-                    // Read file
                     const text = await file.text();
                     
-                    // Show initial message
-                    output.innerHTML = '<p style="text-align: center; color: #999;">Parsing...</p>';
+                    console.log('%c=========================================', 'background: #d63031; color: white;');
+                    console.log('%c📁 LOADING SINGLE FILE:', 'background: #d63031; color: white; font-weight: bold;', file.name);
                     
-                    // Use the smart parser
+                    output.innerHTML = '<div id="spinner-overlay"><div class="spinner-container"><div id="spinner"></div><div class="spinner-text">Parsing markdown...</div></div></div><p style="text-align: center; color: #999;">Parsing...</p>';
+                    
                     let result;
                     if (window.parseMarkdownSmart) {
-                        console.log('🔴 Alpha: Using smart parser with', 
-                            window.supportsWorkers ? 'Web Workers' : 'sync fallback');
-                        
                         result = await window.parseMarkdownSmart(text, {
-                            forceWorker: text.length > 500000 // Force worker for very large files
+                            forceWorker: text.length > 500000
                         });
                     } else {
-                        // Fallback to regular parser
-                        console.log('🔴 Alpha: Smart parser not available, using fallback');
                         const html = window.parseMarkdown(text);
                         result = {
                             html,
@@ -460,49 +835,272 @@ function updateStats(stats) {
                         };
                     }
                     
-                    // Display result
                     output.innerHTML = result.html;
+                    
+                    // Re-add spinner overlay
+                    const newSpinnerOverlay = document.createElement('div');
+                    newSpinnerOverlay.id = 'spinner-overlay';
+                    newSpinnerOverlay.innerHTML = '<div class="spinner-container"><div id="spinner"></div><div class="spinner-text">Parsing markdown...</div></div>';
+                    output.appendChild(newSpinnerOverlay);
+                    
                     updateStats(result.stats);
                     
-                    // Add alpha watermark
-                    console.log('🔴 Alpha rendering complete - all content is red for identification');
-                    
                 } catch (error) {
-                    console.error('🔴 Alpha error:', error);
-                    output.innerHTML = `<p style="color: #b71c1c; text-align: center;">Error parsing file: ${error.message}</p>`;
+                    console.error('🔴 Error:', error);
+                    output.innerHTML = `<div id="spinner-overlay"><div class="spinner-container"><div id="spinner"></div><div class="spinner-text">Parsing markdown...</div></div></div><p style="color: #b71c1c; text-align: center; margin-top: 100px;">Error parsing file: ${error.message}</p>`;
                     updateWorkerStatus('error', error.message);
                 } finally {
                     setLoading(false);
                 }
             }
 
-            // Event listeners
-            fileInput.addEventListener('change', (event) => {
-                handleFile(event.target.files[0]);
+            // Load a markdown file from a folder with images
+            async function loadMarkdownFileWithImages(file) {
+                currentFile = file;
+                filenameSpan.textContent = file.webkitRelativePath;
+                setLoading(true);
+                
+                try {
+                    const text = await file.text();
+                    
+                    // Get the full path to the .mdeb folder
+                    const filePath = file.webkitRelativePath;
+                    const lastSlash = filePath.lastIndexOf('/');
+                    const fileDir = filePath.substring(0, lastSlash + 1);
+                    
+                    console.log('%c=========================================', 'background: #d63031; color: white;');
+                    console.log('%c📁 LOADING FILE WITH IMAGES:', 'background: #d63031; color: white; font-weight: bold;', filePath);
+                    
+                    // Find all image references in the markdown
+                    const imgRegex = /!\[.*?\]\((.*?)\)/g;
+                    const matches = [...text.matchAll(imgRegex)];
+                    
+                    if (matches.length > 0) {
+                        console.log('%c📸 LOADING IMAGES AS DATA URLs...', 'background: #fd7e14; color: white;');
+                    }
+                    
+                    // Load each image and convert to data URL
+                    const imageMap = new Map();
+                    let loadedCount = 0;
+                    
+                    for (const match of matches) {
+                        const imgPath = match[1];
+                        // Construct the full path to the image
+                        const fullImagePath = fileDir + imgPath;
+                        
+                        console.log(`  Loading image: ${fullImagePath}`);
+                        
+                        // Find the image file in allFiles
+                        const imageFile = allFiles.find(f => f.webkitRelativePath === fullImagePath);
+                        
+                        if (imageFile) {
+                            try {
+                                const imageData = await readFileAsDataURL(imageFile);
+                                imageMap.set(imgPath, imageData);
+                                loadedCount++;
+                                console.log(`  ✅ Image loaded (${loadedCount}/${matches.length}): ${imgPath}`);
+                            } catch (e) {
+                                console.error(`  ❌ Failed to load image: ${imgPath}`, e);
+                            }
+                        } else {
+                            console.log(`  ❌ Image file not found: ${fullImagePath}`);
+                        }
+                    }
+                    
+                    console.log(`%c📸 LOADED ${loadedCount}/${matches.length} IMAGES`, 'background: #28a745; color: white;');
+                    
+                    // Process markdown - replace image paths with data URLs
+                    let processedText = text;
+                    imageMap.forEach((dataUrl, imgPath) => {
+                        const escapedPath = imgPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const regex = new RegExp(`(!\\[.*?\\]\\()${escapedPath}(\\))`, 'g');
+                        processedText = processedText.replace(regex, `$1${dataUrl}$2`);
+                    });
+                    
+                    output.innerHTML = '<div id="spinner-overlay"><div class="spinner-container"><div id="spinner"></div><div class="spinner-text">Parsing markdown...</div></div></div><p style="text-align: center; color: #999;">Parsing...</p>';
+                    
+                    let result;
+                    if (window.parseMarkdownSmart) {
+                        result = await window.parseMarkdownSmart(processedText, {
+                            forceWorker: text.length > 500000
+                        });
+                    } else {
+                        const html = window.parseMarkdown(processedText);
+                        result = {
+                            html,
+                            stats: {
+                                size: text.length,
+                                parseTime: 0,
+                                usedCache: false,
+                                usedWorker: false
+                            }
+                        };
+                    }
+                    
+                    output.innerHTML = result.html;
+                    
+                    // Re-add spinner overlay
+                    const newSpinnerOverlay = document.createElement('div');
+                    newSpinnerOverlay.id = 'spinner-overlay';
+                    newSpinnerOverlay.innerHTML = '<div class="spinner-container"><div id="spinner"></div><div class="spinner-text">Parsing markdown...</div></div>';
+                    output.appendChild(newSpinnerOverlay);
+                    
+                    updateStats(result.stats);
+                    renderMdebFolders();
+                    
+                } catch (error) {
+                    console.error('🔴 Error:', error);
+                    output.innerHTML = `<div id="spinner-overlay"><div class="spinner-container"><div id="spinner"></div><div class="spinner-text">Parsing markdown...</div></div></div><p style="color: #b71c1c; text-align: center; margin-top: 100px;">Error parsing file: ${error.message}</p>`;
+                    updateWorkerStatus('error', error.message);
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            // Process folder files
+            async function processFolder(files) {
+                if (!files || files.length === 0) return;
+                
+                const fileArray = Array.from(files);
+                allFiles = fileArray;
+                mdebFolders.clear();
+                
+                // Group files by their .mdeb folder
+                fileArray.forEach(file => {
+                    const path = file.webkitRelativePath;
+                    if (path) {
+                        const match = path.match(/(.*\/)?([^\/]+\.mdeb)\//);
+                        if (match) {
+                            const fullPath = match[0];
+                            
+                            if (!mdebFolders.has(fullPath)) {
+                                mdebFolders.set(fullPath, {
+                                    path: fullPath,
+                                    name: match[2],
+                                    files: []
+                                });
+                            }
+                            mdebFolders.get(fullPath).files.push(file);
+                        }
+                    }
+                });
+                
+                console.log('Found .mdeb folders:', mdebFolders.size);
+                
+                if (mdebFolders.size === 0) {
+                    alert('No .mdeb folders found in the selected location');
+                    filenameSpan.textContent = 'No .mdeb folders found';
+                    return;
+                }
+                
+                filenameSpan.textContent = `${mdebFolders.size} .mdeb ebook(s) found`;
+                
+                // If only one folder, load it automatically
+                if (mdebFolders.size === 1) {
+                    const [path, folder] = mdebFolders.entries().next().value;
+                    const mdFile = folder.files.find(f => f.name === 'book.md');
+                    if (mdFile) {
+                        await loadMarkdownFileWithImages(mdFile);
+                    }
+                }
+                
+                renderMdebFolders();
+            }
+
+            // Render list of .mdeb folders
+            function renderMdebFolders() {
+                if (mdebFolders.size === 0) {
+                    fileListDiv.style.display = 'none';
+                    return;
+                }
+                
+                fileListDiv.style.display = 'block';
+                
+                let html = '<strong>📁 Select an ebook:</strong><br>';
+                mdebFolders.forEach((folder, path) => {
+                    const isSelected = currentFile && folder.files.includes(currentFile);
+                    const displayName = path;
+                    html += `<div class="folder-item ${isSelected ? 'selected' : ''}" data-path="${path}">📖 ${displayName}</div>`;
+                });
+                
+                fileListDiv.innerHTML = html;
+                
+                fileListDiv.querySelectorAll('.folder-item').forEach(item => {
+                    item.addEventListener('click', async () => {
+                        const folderPath = item.dataset.path;
+                        const folder = mdebFolders.get(folderPath);
+                        
+                        const mdFile = folder.files.find(f => f.name === 'book.md');
+                        if (mdFile) {
+                            await loadMarkdownFileWithImages(mdFile);
+                        } else {
+                            alert('No book.md found in this .mdeb folder');
+                        }
+                    });
+                });
+            }
+
+            // ========== EVENT LISTENERS ==========
+
+            // Folder picker
+            folderPicker.addEventListener('change', async (event) => {
+                await processFolder(event.target.files);
+                folderPicker.value = '';
             });
 
-            browseBtn.addEventListener('click', () => {
-                fileInput.click();
+            // File picker
+            filePicker.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    await loadSingleMarkdownFile(file);
+                }
+                filePicker.value = '';
             });
+
+            // Buttons
+            folderBtn.addEventListener('click', () => folderPicker.click());
+            fileBtn.addEventListener('click', () => filePicker.click());
 
             // Drag and drop
-            browseBtn.addEventListener('dragover', (e) => {
+            dropZone.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                browseBtn.classList.add('drag-over');
+                dropZone.classList.add('drag-over');
             });
 
-            browseBtn.addEventListener('dragleave', (e) => {
+            dropZone.addEventListener('dragleave', (e) => {
                 e.preventDefault();
-                browseBtn.classList.remove('drag-over');
+                dropZone.classList.remove('drag-over');
             });
 
-            browseBtn.addEventListener('drop', (e) => {
+            dropZone.addEventListener('drop', async (e) => {
                 e.preventDefault();
-                browseBtn.classList.remove('drag-over');
+                dropZone.classList.remove('drag-over');
                 
+                const items = e.dataTransfer.items;
                 const files = e.dataTransfer.files;
+                
+                if (items.length > 0) {
+                    // Check if it's a folder (using items API)
+                    const item = items[0];
+                    if (item.kind === 'file') {
+                        const entry = item.webkitGetAsEntry();
+                        if (entry && entry.isDirectory) {
+                            // It's a folder - use folder picker approach
+                            alert('For folders, please use the "Select Folder" button for best results.');
+                            folderPicker.click();
+                            return;
+                        }
+                    }
+                }
+                
+                // Handle as regular files
                 if (files.length > 0) {
-                    handleFile(files[0]);
+                    const file = files[0];
+                    if (file.name.match(/\.(md|markdown|txt)$/i)) {
+                        await loadSingleMarkdownFile(file);
+                    } else {
+                        alert('Please drop a .md file');
+                    }
                 }
             });
 
@@ -510,59 +1108,60 @@ function updateStats(stats) {
             document.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
                     e.preventDefault();
-                    fileInput.click();
+                    filePicker.click();
                 }
             });
 
-            // Initialize on load
+            // Cache control buttons
+            document.getElementById('show-details-btn').addEventListener('click', async () => {
+                cacheDetails.classList.toggle('visible');
+                if (cacheDetails.classList.contains('visible')) {
+                    await updateCacheDetails();
+                }
+            });
+
+            document.getElementById('clear-cache-btn').addEventListener('click', () => {
+                if (window.clearMarkdownCache) {
+                    window.clearMarkdownCache();
+                    updateCacheStats();
+                    cacheDetails.classList.remove('visible');
+                }
+            });
+
+            document.getElementById('refresh-stats-btn').addEventListener('click', () => {
+                updateCacheStats();
+                if (cacheDetails.classList.contains('visible')) {
+                    updateCacheDetails();
+                }
+            });
+
+            document.getElementById('stats-badge').addEventListener('click', async () => {
+                cacheDetails.classList.toggle('visible');
+                if (cacheDetails.classList.contains('visible')) {
+                    await updateCacheDetails();
+                }
+            });
+
+            // Initialize
             window.addEventListener('load', () => {
-                browseBtn.focus();
+                folderBtn.focus();
                 
-                // Check if smart parser is available
                 if (window.parseMarkdownSmart) {
-                    console.log('🔴 Alpha features enabled:', {
-                        workers: window.supportsWorkers ? 'supported ✅' : 'not supported ❌',
-                        threshold: window.CONFIG?.WORKER_THRESHOLD || 102400,
-                        version: '1.0.0-alpha',
-                        note: 'All markdown content appears in red for alpha identification'
-                    });
+                    console.log('🔴 Alpha features enabled with FULL INPUT SUPPORT');
                     
-                    // Show welcome message
                     const welcomeMsg = document.createElement('div');
                     welcomeMsg.style.cssText = 'background: #fff5f5; color: #742a2a; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; border-left: 4px solid #d63031;';
                     welcomeMsg.innerHTML = '🔴 <strong>Alpha Mode Active</strong> - Web Workers ' + 
                         (window.supportsWorkers ? '✅ enabled' : '❌ not supported') + 
-                        '<br>📕 <strong>Red Content:</strong> All markdown renders in red to distinguish alpha from production.';
+                        '<br>📕 <strong>Red Content:</strong> All markdown renders in red.' +
+                        '<br>📁 <strong>Multiple Input Methods:</strong> Buttons, drag & drop, and folder selection!' +
+                        '<br>🖼️ <strong>Image Embedding:</strong> Images in .mdeb folders are loaded as data URLs!';
                     
                     const container = document.querySelector('.instructions');
                     container.parentNode.insertBefore(welcomeMsg, container.nextSibling);
+                    
+                    updateCacheStats();
                 }
-            });
-
-            // Expose for console testing
-            window.testParser = {
-                small: () => handleFile(new File(['# Test\nSmall file'], 'test.md', { type: 'text/markdown' })),
-                medium: () => {
-                    const text = '# Medium Test\n\n' + 'word '.repeat(5000);
-                    return handleFile(new File([text], 'medium.md', { type: 'text/markdown' }));
-                },
-                large: () => {
-                    const text = '# Large Test\n\n' + 'word '.repeat(10000);
-                    return handleFile(new File([text], 'large.md', { type: 'text/markdown' }));
-                },
-                huge: () => {
-                    const text = '# Huge Test\n\n' + 'word '.repeat(100000);
-                    return handleFile(new File([text], 'huge.md', { type: 'text/markdown' }));
-                }
-            };
-            
-            // Add alpha tester info
-            console.log('🔴 Alpha tester commands:', {
-                'testParser.small()': 'Test with small file',
-                'testParser.medium()': 'Test with medium file',
-                'testParser.large()': 'Test with large file',
-                'testParser.huge()': 'Test with huge file (worker)',
-                'note': 'All output will be red - this is intentional for alpha builds'
             });
         })();
     </script>
