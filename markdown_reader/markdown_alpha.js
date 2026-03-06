@@ -1,7 +1,20 @@
-// Combined Markdown Parser
+// Combined Markdown Parser with Image Path Resolution - DEBUG VERSION
 (function() {
     // ==================================================================
-    // CODEBLOCKS MODULE
+    // IMAGE PATH RESOLUTION - ADD THIS AT THE TOP
+    // ==================================================================
+    
+    // Store the base path for images
+    window.markdownBasePath = '';
+
+    // Simple function to set the base path
+    window.setMarkdownBasePath = function(path) {
+        window.markdownBasePath = path;
+        console.log('%c🔴 IMAGE BASE PATH SET TO:', 'background: #d63031; color: white; padding: 2px 5px;', path);
+    };
+
+    // ==================================================================
+    // CODEBLOCKS MODULE (unchanged)
     // ==================================================================
     
     // Cache
@@ -398,6 +411,9 @@
 
         res = wa.replace(rLP, (m, i) => lph[parseInt(i)]);
 
+        // ==================================================================
+        // MODIFIED: Image handling with base path resolution and DEBUG
+        // ==================================================================
         res = res.replace(rM, (m, lc, alt, url, rc) => {
             const su = e(url);
             const sa = e(alt);
@@ -407,17 +423,43 @@
             else if (rc) ac = ' r';
             else if (lc) ac = ' l';
             
+            // DEBUG: Log the original image reference
+            console.log('%c🔍 IMAGE FOUND:', 'background: #d63031; color: white; padding: 2px 5px;', {
+                url: url,
+                alt: alt,
+                basePath: window.markdownBasePath
+            });
+            
+            // Add the base path if it exists and the URL isn't absolute/external
+            let finalUrl = su;
+            if (window.markdownBasePath && !su.startsWith('http') && !su.startsWith('//') && !su.startsWith('/') && !su.startsWith('data:')) {
+                finalUrl = window.markdownBasePath + su;
+                console.log('%c✅ BASE PATH APPLIED:', 'background: #28a745; color: white; padding: 2px 5px;', {
+                    original: su,
+                    basePath: window.markdownBasePath,
+                    final: finalUrl
+                });
+            } else {
+                console.log('%c⚠️ NO BASE PATH APPLIED:', 'background: #ffc107; color: black; padding: 2px 5px;', {
+                    reason: !window.markdownBasePath ? 'No base path set' : 'URL is absolute/external',
+                    url: su
+                });
+            }
+            
             const em = url.match(/\.([^.]+)$/);
             if (em) {
                 const ext = '.' + em[1].toLowerCase();
                 if (V.has(ext)) {
-                    return `<video src="${su}" controls preload="metadata" alt="${sa}" class="m${ac}"></video>`;
+                    console.log('%c🎥 VIDEO TAG:', 'background: #17a2b8; color: white; padding: 2px 5px;', finalUrl);
+                    return `<video src="${finalUrl}" controls preload="metadata" alt="${sa}" class="m${ac}"></video>`;
                 }
                 if (A.has(ext)) {
-                    return `<audio src="${su}" controls preload="metadata" alt="${sa}" class="m${ac}"></audio>`;
+                    console.log('%c🎵 AUDIO TAG:', 'background: #17a2b8; color: white; padding: 2px 5px;', finalUrl);
+                    return `<audio src="${finalUrl}" controls preload="metadata" alt="${sa}" class="m${ac}"></audio>`;
                 }
             }
-            return `<img src="${su}" alt="${sa}" class="m${ac}">`;
+            console.log('%c🖼️ IMAGE TAG:', 'background: #6f42c1; color: white; padding: 2px 5px;', finalUrl);
+            return `<img src="${finalUrl}" alt="${sa}" class="m${ac}">`;
         });
 
         res = res.replace(rL, (m, t, u, ti) => {
@@ -443,6 +485,9 @@
             return m;
         });
 
+        // ==================================================================
+        // MODIFIED: Reference image handling with base path resolution and DEBUG
+        // ==================================================================
         res = res.replace(rRI, (m, ea, ei, ca, sa) => {
             const alt = ea || ca || sa;
             const id = ei || alt;
@@ -450,9 +495,23 @@
             const def = rm ? rm[rid] : null;
             if (def) {
                 const su = e(def.url);
+                // DEBUG: Log the reference image
+                console.log('%c🔍 REFERENCE IMAGE FOUND:', 'background: #d63031; color: white; padding: 2px 5px;', {
+                    id: id,
+                    url: def.url,
+                    basePath: window.markdownBasePath
+                });
+                
+                // Add the base path if it exists and the URL isn't absolute/external
+                let finalUrl = su;
+                if (window.markdownBasePath && !su.startsWith('http') && !su.startsWith('//') && !su.startsWith('/') && !su.startsWith('data:')) {
+                    finalUrl = window.markdownBasePath + su;
+                    console.log('%c✅ BASE PATH APPLIED:', 'background: #28a745; color: white; padding: 2px 5px;', finalUrl);
+                }
+                
                 const ta = def.title ? ` title="${e(def.title)}"` : '';
                 const sa = e(alt);
-                return `<img src="${su}" alt="${sa}"${ta}>`;
+                return `<img src="${finalUrl}" alt="${sa}"${ta}>`;
             }
             return m;
         });
@@ -463,6 +522,7 @@
 
     // Main parser function
     function parseMarkdown(text) {
+        console.log('%c📄 PARSING MARKDOWN', 'background: #d63031; color: white; padding: 2px 5px;', 'Length: ' + text.length);
         let html = text;
 
         // Protect escaped characters
@@ -625,7 +685,7 @@
         html = ri(html, rm, fd, fn, fro, frc);
         lines = html.split('\n');
 
-        // Process lists and paragraphs
+        // Process lists and paragraphs - WITH FIRST-LINE INDENTATION
         const lr_ = [];
         const lst = [];
 
@@ -645,12 +705,14 @@
             i2l[ui[idx]] = idx + 1;
         }
 
+        // Capture original indentation for paragraphs
         const nl = lines.map((line) => {
             if (line.trim() === '') return { text: '', ri: 0, nl: 0, ie: true };
             const im = line.match(/^(\s*)/);
             const ri = im ? im[1].length : 0;
             return {
                 text: line.trim(),
+                rawIndent: im ? im[1] : '',
                 ri: ri,
                 nl: i2l[ri] || 0,
                 ie: false
@@ -665,12 +727,28 @@
             if (!nl[i].ie) nxt = i;
         }
 
+        // Helper function to create paragraph with indentation
+        function createParagraph(text, indent) {
+            if (indent && indent.length > 0) {
+                let tabCount = 0, spaceCount = 0;
+                for (let j = 0; j < indent.length; j++) {
+                    if (indent[j] === '\t') tabCount++;
+                    else spaceCount++;
+                }
+                const totalIndent = (tabCount * 2) + (spaceCount * 0.5);
+                return `<p style="text-indent: ${totalIndent}em;">${text}</p>`;
+            } else {
+                return `<p>${text}</p>`;
+            }
+        }
+
         for (let i = 0; i < nlen; i++) {
             const it = nl[i];
             if (it.ie) continue;
 
             const line = it.text;
             const ri = it.ri;
+            const rawIndent = it.rawIndent || '';
 
             const lm = line.match(rLIC);
             if (lm) {
@@ -779,7 +857,9 @@
                 const tri = lst[lst.length - 1].ri;
                 if (it.ri > tri) {
                     let pl = [line];
+                    let firstIndent = rawIndent;
                     let j = i + 1;
+                    
                     while (j < nlen) {
                         const nit = nl[j];
                         if (nit.ie) break;
@@ -790,8 +870,9 @@
                         pl.push(nl_);
                         j++;
                     }
+                    
                     const pt = pl.join(' ');
-                    lr_.push('<p>' + pt + '</p>');
+                    lr_.push(createParagraph(pt, firstIndent));
                     i = j - 1;
                     continue;
                 } else {
@@ -800,10 +881,25 @@
                         lr_.push('</li>');
                         lr_.push('</' + cl.t + '>');
                     }
-                    lr_.push('<p>' + line + '</p>');
+                    lr_.push(createParagraph(line, rawIndent));
                 }
             } else {
-                lr_.push('<p>' + line + '</p>');
+                let pl = [line];
+                let firstIndent = rawIndent;
+                let j = i + 1;
+                
+                while (j < nlen) {
+                    const nit = nl[j];
+                    if (nit.ie) break;
+                    const nl_ = nit.text;
+                    if (nl_.match(/^([-*+]|\d+\.)\s/) || isBL(nl_)) break;
+                    pl.push(nl_);
+                    j++;
+                }
+                
+                const pt = pl.join(' ');
+                lr_.push(createParagraph(pt, firstIndent));
+                i = j - 1;
             }
         }
 
@@ -967,6 +1063,6 @@
         return html;
     }
 
-    // Export single function
+    // Export functions
     window.parseMarkdown = parseMarkdown;
 })();
