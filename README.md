@@ -49,7 +49,9 @@ As a bonus, you can load multiple .mdeb folders at once in their parent folder. 
 
 1. Enhance MDEB to detect page_number.md in separate chapters. 
 
-2. Load table of contents from a sidebar in a similar fashion as Gitub. 
+2. Load table of contents from a sidebar in a similar fashion as Gitub.
+
+3. Profanity filter is a possibility. 
 
 ## Parser-Agnostic Features
 
