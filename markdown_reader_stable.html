@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stable Markdown Reader</title>
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="markdown_reader/parser/highlights/markdown_hl.css">
+    <link rel="stylesheet" href="markdown_reader/parser/markdown_stable.css">
+    <link rel="stylesheet" href="markdown_reader/parser/markdown_front_matter.css">
+    <link rel="stylesheet" href="markdown_reader/handler/handler_stable.css">
+
+    <!-- Load markdown dependencies -->
+    <script src="markdown_reader/parser/markdown_front_matter.js"></script>
+    <script src="markdown_reader/parser/markdown_mdeb.js"></script>
+
+    <script src="markdown_reader/parser/highlights/markdown_hl.js"></script>
+
+    <script src="markdown_reader/parser/markdown_emoji.js"></script>
+    <script src="parser_agnostic/media/media_control.js"></script>
+
+    <!-- Main markdown parser -->
+    <script src="markdown_reader/parser/markdown_stable.js"></script>
+    <script src="markdown_reader/parser/markdown_sanitize.js"></script>
+    <script src="markdown_reader/parser/markdown_work_load.js"></script>
+    
+    <!-- Stable Reader Application -->
+    <script src="markdown_reader/handler/handler_stable.js"></script>
+    
+  
+</head>
+<body>
+    <div class="container">
+        <h1 style="margin-top: 0; color: #0366d6;">📄 Stable Markdown Reader</h1>
+
+        <div class="instructions">
+            <p><strong>Full-featured Markdown:</strong> Headings, paragraphs, bold, italic, strikethrough, highlight, subscript, superscript, links, images, blockquotes (nested), lists (ordered/unordered with adaptive indentation), task lists, tables, fenced code blocks, inline code, horizontal rules, inline HTML, line breaks, escaping, automatic video/audio embedding, and emoji support.</p>
+            <p><strong>✨ Features:</strong> Web Workers for large files, Smart caching (5 levels), Performance stats, Memory management, .mdeb folder support with file sizes, YAML Front Matter metadata display, <strong>✨ NEW: Syntax highlighting</strong> for code blocks</p>
+        </div>
+
+        <!-- Test section to verify highlighting is working -->
+        <div style="display: none;" id="highlight-test">
+            <h3>Highlight Test (should be colored)</h3>
+            <pre><code class="language-javascript">function test() {
+    const x = 42;
+    return x;
+}</code></pre>
+        </div>
+
+        <div class="button-group">
+            <button class="browse-btn" id="browseBtn">
+                <div style="font-size: 48px; margin-bottom: 10px;">📂</div>
+                <div>Click to Open or Drag & Drop Markdown Files</div>
+                <div style="font-size: 14px; margin-top: 10px;">.md, .markdown, .txt files</div>
+            </button>
+            
+            <button class="action-btn" id="folderBtn">📁 Select .mdeb Folder</button>
+        </div>
+
+        <input type="file" id="fileInput" accept=".md,.markdown,.txt" multiple />
+        <input type="file" id="folderPicker" webkitdirectory directory />
+
+        <div id="currentFile" class="current-file">
+            <span id="filename">No file selected</span>
+            <span>
+                <span id="stats-badge">📊 Stats</span>
+                <span id="worker-status" class="worker-inactive" title="Worker status"></span>
+            </span>
+        </div>
+
+        <div id="fileList" class="file-list" style="display: none;"></div>
+
+        <!-- Metadata panel will be injected here by front-matter.js -->
+        
+        <div id="perf-stats">
+            <div class="stat-row">
+                <span class="stat-item">
+                    <span class="stat-label">Size:</span>
+                    <span class="stat-value" id="stat-size">0 KB</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Time:</span>
+                    <span class="stat-value" id="stat-time">0 ms</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Method:</span>
+                    <span class="stat-value" id="stat-method">-</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Cache:</span>
+                    <span class="stat-value" id="stat-cache">❌</span>
+                    <span class="cache-level" id="cache-level-badge" style="display: none;"></span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Worker:</span>
+                    <span class="stat-value" id="stat-worker">Ready</span>
+                </span>
+            </div>
+            
+            <div class="memory-bar" id="memory-bar">
+                <div class="memory-bar-fill" id="memory-bar-fill" style="width: 0%;"></div>
+            </div>
+            
+            <div class="stat-row" style="justify-content: space-between;">
+                <span class="stat-item">
+                    <span class="stat-label">Cache Memory:</span>
+                    <span class="stat-value" id="stat-memory">0 MB / 50 MB</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Hit Rate:</span>
+                    <span class="stat-value" id="stat-hitrate">0%</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-label">Entries:</span>
+                    <span class="stat-value" id="stat-entries">0</span>
+                </span>
+            </div>
+            
+            <div class="cache-controls">
+                <button class="cache-btn" id="show-details-btn">📊 Show Details</button>
+                <button class="cache-btn" id="clear-cache-btn">🗑️ Clear Cache</button>
+                <button class="cache-btn" id="refresh-stats-btn">🔄 Refresh</button>
+            </div>
+            
+            <div class="detail-panel" id="cache-details">
+                <div class="detail-grid" id="cache-details-grid"></div>
+            </div>
+        </div>
+
+        <div id="markdown-output" class="markdown-body">
+            <div class="spinner-wrapper hidden" id="spinnerWrapper">
+                <div id="spinner"></div>
+                <div class="spinner-text">Parsing markdown...</div>
+            </div>
+            <p class="placeholder-text">Select a Markdown file to view its formatted content.</p>
+        </div>
+    </div>
+</body>
+</html>
