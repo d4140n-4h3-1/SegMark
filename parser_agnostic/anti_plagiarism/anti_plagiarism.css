@@ -1,0 +1,252 @@
+/* ========================================
+   ANTI-PLAGIARISM SYSTEM - CSS COMPONENT
+   Visual and Print Protection
+   ======================================== */
+
+/* ----------------------------------------
+   BASE PROTECTION LAYERS
+   ---------------------------------------- */
+
+.protected-content * {
+  /* Disable text selection */
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  
+  /* Disable drag and drop */
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  
+  /* Prevent touch callout on mobile */
+  -webkit-touch-callout: none !important;
+}
+
+/* Hide selection highlight */
+.protected-content ::selection {
+  background: transparent !important;
+}
+
+.protected-content ::-moz-selection {
+  background: transparent !important;
+}
+
+/* ----------------------------------------
+   VISUAL OBFUSCATION
+   ---------------------------------------- */
+
+/* Text that reveals on hover */
+.obfuscated-text {
+  position: relative;
+  color: transparent;
+  text-shadow: 0 0 8px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+.obfuscated-text:hover {
+  color: inherit;
+  text-shadow: none;
+}
+
+/* Split text with visual barriers */
+.split-content {
+  position: relative;
+  display: inline-block;
+}
+
+.split-content::before,
+.split-content::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(0,0,0,0.1);
+  pointer-events: none;
+}
+
+.split-content::before { left: 33%; }
+.split-content::after { right: 33%; }
+
+/* Watermark overlay */
+.watermark-overlay {
+  position: relative;
+}
+
+.watermark-overlay::after {
+  content: "© CONFIDENTIAL";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12vw;
+  opacity: 0.03;
+  color: #000;
+  pointer-events: none;
+  transform: rotate(-15deg);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+/* Random noise overlay */
+.noise-overlay {
+  position: relative;
+}
+
+.noise-overlay::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="1" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(%23noise)" opacity="0.1"/></svg>');
+  pointer-events: none;
+  opacity: 0.15;
+  z-index: 1;
+}
+
+/* ----------------------------------------
+   PRINT PROTECTION
+   ---------------------------------------- */
+
+@media print {
+  /* Hide all protected content by default */
+  body {
+    visibility: hidden;
+  }
+  
+  /* Show only allowed content */
+  .print-allowed,
+  .print-allowed * {
+    visibility: visible !important;
+  }
+  
+  /* Add forensic watermarks to every page */
+  @page {
+    @bottom-center {
+      content: "Printed: " counter(page) " - Unauthorized distribution prohibited";
+      font-size: 8pt;
+      color: #666;
+    }
+    
+    @top-center {
+      content: "CONFIDENTIAL DOCUMENT";
+      font-size: 10pt;
+      color: #999;
+    }
+  }
+  
+  /* Add unique fingerprint to each printed page */
+  .print-allowed::after {
+    content: "Document ID: " attr(data-doc-id) " | Printed: " attr(data-print-date);
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    font-size: 6pt;
+    color: #ccc;
+    font-family: monospace;
+  }
+  
+  /* Fade sensitive content */
+  .sensitive-print {
+    opacity: 0.5;
+    filter: blur(1px);
+  }
+  
+  /* Add warning header to each page */
+  .print-header {
+    display: none;
+  }
+  
+  @media print {
+    .print-header {
+      display: block;
+      position: running(header);
+      text-align: center;
+      font-size: 9pt;
+      color: #f00;
+      border-bottom: 1px dashed #f00;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+  }
+}
+
+/* ----------------------------------------
+   MOBILE-SPECIFIC PROTECTION
+   ---------------------------------------- */
+
+@media (max-width: 768px) {
+  /* Prevent long-press menu */
+  .protected-content {
+    -webkit-touch-callout: none !important;
+  }
+  
+  /* Disable tap highlight */
+  .protected-content * {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  /* Prevent text zoom on input */
+  .protected-content input,
+  .protected-content textarea {
+    font-size: 16px !important; /* Prevents iOS zoom */
+  }
+}
+
+/* ----------------------------------------
+   UTILITY CLASSES
+   ---------------------------------------- */
+
+/* Blur sensitive content */
+.blur-sensitive {
+  filter: blur(4px);
+  transition: filter 0.2s;
+}
+
+.blur-sensitive:hover,
+.blur-sensitive:focus {
+  filter: blur(0);
+}
+
+/* Disable right-click indicator */
+.no-right-click {
+  cursor: not-allowed;
+}
+
+/* Visual feedback for copy attempts */
+.copy-attempt {
+  animation: shakeWarning 0.3s ease;
+}
+
+@keyframes shakeWarning {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(10px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* Content fragmentation */
+.fragmented-text {
+  word-break: break-all;
+  letter-spacing: 2px;
+}
+
+.fragmented-text span {
+  display: inline-block;
+  background: rgba(0,0,0,0.02);
+  margin: 0 1px;
+}
+
+/* Invisible character injection */
+.inject-chars::after {
+  content: "​​​"; /* Multiple zero-width spaces */
+  display: inline;
+}
