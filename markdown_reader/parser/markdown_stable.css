@@ -1,0 +1,242 @@
+/* Markdown Styles - Optimized */
+.markdown-body {
+    font-family: -apple-system, BlinkMacSystemFont, "Liberation Serif", sans-serif;
+    line-height: 1.6;
+    color: #24292e;
+    background: #fff;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Headings */
+.markdown-body h1 { font-size: 2em; margin: 0.67em 0; }
+.markdown-body h2 { font-size: 1.5em; margin: 0.75em 0; }
+.markdown-body h3 { font-size: 1.25em; margin: 0.83em 0; }
+.markdown-body h4 { font-size: 1em; margin: 1.12em 0; }
+.markdown-body h5 { font-size: 0.875em; margin: 1.5em 0; }
+.markdown-body h6 { font-size: 0.85em; margin: 1.67em 0; }
+
+/* Bold and Italic */
+.markdown-body strong { font-weight: 600; }
+.markdown-body em { font-style: italic; }
+
+/* Strikethrough */
+.markdown-body del { text-decoration: line-through; color: inherit; }
+
+/* Highlight */
+.markdown-body mark {
+    background-color: #ff0;
+    color: inherit;
+    padding: 0.1em 0.2em;
+    border-radius: 3px;
+}
+
+/* Subscript and Superscript */
+.markdown-body sub { vertical-align: sub; font-size: smaller; }
+.markdown-body sup { vertical-align: super; font-size: smaller; }
+
+/* Links */
+.markdown-body a { color: #0366d6; text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
+
+/* Media base */
+.markdown-body .m {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 1.5em 0;
+}
+
+.markdown-body video.m { width: 640px; }
+.markdown-body audio.m { width: 100%; max-width: 400px; }
+
+/* Media alignment */
+.markdown-body .m.l { margin-left: 0; margin-right: auto; }  /* left */
+.markdown-body .m.c { margin-left: auto; margin-right: auto; } /* center */
+.markdown-body .m.r { margin-left: auto; margin-right: 0; } /* right */
+
+/* Blockquotes */
+.markdown-body blockquote {
+    margin: 0.5em 0;
+    padding: 0 1em;
+    border-left: 0.25em solid #dfe2e5;
+    color: inherit;
+}
+.markdown-body blockquote h1,
+.markdown-body blockquote h2,
+.markdown-body blockquote h3,
+.markdown-body blockquote h4,
+.markdown-body blockquote h5,
+.markdown-body blockquote h6 {
+    margin: inherit;
+    color: inherit;
+}
+
+/* Lists */
+.markdown-body ul {
+    list-style-type: disc;
+    margin: 1em 0;
+    padding-left: 1.5em;
+}
+.markdown-body ol {
+    list-style-type: decimal;
+    margin: 1em 0;
+    padding-left: 1.8em;
+}
+.markdown-body li { margin: 0.25em 0; }
+.markdown-body ul ul {
+    list-style-type: circle;
+    margin: 0;
+    padding-left: 1.2em;
+}
+.markdown-body ul ul ul { list-style-type: square; }
+.markdown-body ol ol,
+.markdown-body ol ol ol,
+.markdown-body ol ol ol ol {
+    list-style-type: decimal;
+    margin: 0;
+    padding-left: 1.2em;
+}
+.markdown-body li > ul,
+.markdown-body li > ol {
+    margin-top: 0;
+    margin-bottom: 0.25em;
+}
+
+/* Definition Lists */
+.markdown-body .g { margin: 0; }  /* glossary-section */
+.markdown-body .g .gt { margin-bottom: 0.1em; }  /* glossary-term */
+.markdown-body .g .gt strong { font-weight: 600; }
+.markdown-body .g .gd {  /* glossary-definition */
+    margin-top: 0.1em;
+    margin-bottom: 0.1em;
+}
+.markdown-body .g .gt + .gd { margin-top: 0.1em; }
+.markdown-body .g .gd:last-of-type { margin-bottom: 0.75em; }
+.markdown-body .g .gd + .gd { margin-top: 0.1em; }
+
+/* Task lists */
+.markdown-body .t {  /* task-list-item */
+    list-style: none;
+    margin-left: -1.5em;
+}
+.markdown-body .t input[type="checkbox"] {
+    margin-right: 0.5em;
+    vertical-align: middle;
+    position: relative;
+    top: -0.1em;
+}
+.markdown-body .t .t { margin-left: 0; }
+
+/* Lists inside blockquotes */
+.markdown-body blockquote ul { padding-left: 0; margin-left: 0; }
+.markdown-body blockquote ol { padding-left: 1.8em; margin-left: 0; }
+.markdown-body blockquote ul ul,
+.markdown-body blockquote ol ol,
+.markdown-body blockquote li > ul,
+.markdown-body blockquote li > ol {
+    padding-left: 1.2em;
+}
+.markdown-body blockquote .t { margin-left: -1.5em; }
+.markdown-body blockquote .t .t { margin-left: 0; }
+
+/* Paragraphs */
+.markdown-body p { 
+    margin: 0 0 1.6em 0; 
+}
+
+/* Indented paragraphs - preserve first-line indent but use default paragraph spacing */
+.markdown-body p[style*="text-indent"] {
+    margin: 0 0 1.6em 0 !important;
+}
+
+.markdown-body .g p { 
+    margin: 0; 
+}
+
+/* Horizontal rules */
+.markdown-body hr {
+    height: 0.25em;
+    padding: 0;
+    margin: 24px 0;
+    background-color: #e1e4e8;
+    border: 0;
+}
+
+/* Tables */
+.markdown-body table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    overflow-x: auto;
+    display: table;
+}
+.markdown-body th,
+.markdown-body td {
+    padding: 6px 13px;
+    border: 1px solid #dfe2e5;
+}
+.markdown-body th {
+    font-weight: 600;
+    background: #f6f8fa;
+}
+.markdown-body tr {
+    background-color: #fff;
+    border-top: 1px solid #c6cbd1;
+}
+.markdown-body tr:nth-child(2n) { background-color: #f6f8fa; }
+
+/* Table alignment */
+.markdown-body th[align="left"],
+.markdown-body td[align="left"] { text-align: left; }
+.markdown-body th[align="center"],
+.markdown-body td[align="center"] { text-align: center; }
+.markdown-body th[align="right"],
+.markdown-body td[align="right"] { text-align: right; }
+
+.markdown-body td audio.m,
+.markdown-body th audio.m {
+  display: block;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+/* Tables inside blockquotes */
+.markdown-body blockquote table { margin-left: 0; width: 100%; }
+
+/* Code */
+.markdown-body code {
+    font-family: "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.9em;
+    padding: 0.2em 0.4em;
+    background: #f6f8fa;
+    border-radius: 3px;
+}
+
+/* Code blocks */
+.markdown-body pre {
+    margin: 1em 0;
+    padding: 0;
+    background: #f6f8fa;
+    border-radius: 3px;
+    overflow-x: auto;
+    line-height: 1.45;
+    font-family: "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.9em;
+}
+.markdown-body pre code {
+    display: block;
+    padding: 0;
+    background: none;
+    border-radius: 0;
+    white-space: pre;
+    word-wrap: normal;
+    tab-size: 4;
+}
+.markdown-body blockquote pre,
+.markdown-body blockquote pre code { margin-left: 0; padding-left: 0; }
+
+/* Footnote backlink */
+.markdown-body .b { text-decoration: none; }  /* footnote-backref */
