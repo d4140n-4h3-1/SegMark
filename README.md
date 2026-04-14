@@ -47,11 +47,9 @@ As a bonus, you can load multiple .mdeb folders at once in their parent folder. 
 
 ### Planned Features
 
-1. Support chapters as separate files. 
+1. Enhance MDEB to detect page_number.md in separate chapters. 
 
-2. Provide Next and Previous controls for chapter-based .mdeb folders on detection. 
-
-3. Load table of contents from a sidebar in a similar fashion as Gitub. 
+2. Load table of contents from a sidebar in a similar fashion as Gitub. 
 
 ## Parser-Agnostic Features
 
